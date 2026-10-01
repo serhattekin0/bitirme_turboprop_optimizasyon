@@ -15,6 +15,7 @@ from sanal_ucak import sanal_ucak
 ZARF_CSV = Path(__file__).resolve().parent.parent / "sonuclar" / "zarf_sonuclari.csv"
 
 
+@pytest.mark.slow  # bütün zarfı tarar
 def test_gurultusuz_ve_gecikmesiz_adim5_ile_ayni():
     """Gürültü 0 ve tau çok küçükken her ölçüm anında ve kusursuz: bütün zarfta Adım 5 sonuçları çıkmalı."""
     zarf = pd.read_csv(ZARF_CSV)

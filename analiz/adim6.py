@@ -66,16 +66,11 @@ def simule_et(irtifa, sicaklik, hiz, gurultu_yuzde, ortalama_s, esik_pph, seed, 
     return olc, sonuc, arama_bitis
 
 
-def kosu_yap(is_):
-    """Tek koşunun bütün ölçütleri. Paralel çalışabilsin diye üst düzey fonksiyon.
-    is_: koşul, parametreler, seed ve ref_yakit_pph (gürültüsüz en düşük yakıt)."""
-    olc, sonuc, arama_bitis = simule_et(is_["irtifa_ft"], is_["sicaklik_C"], is_["hiz_kt"], is_["gurultu_yuzde"],
-                                        is_["ortalama_s"], is_["esik_pph"], is_["seed"])
+def net_olcutleri(olc, arama_bitis, y1900, bulunan_gercek):
+    """10 dakikalık seyrin yakıt ölçütleri, ölçüm sisteminin zaman serisi kaydından.
+    y1900: 1900 RPM'deki gerçek yakıt; bulunan_gercek: aramadan sonra kalınan devirdeki gerçek yakıt (PPH)."""
     kayit = olc.kayit()
     t, gercek = kayit.t_s.to_numpy(), kayit.gercek_yakit.to_numpy()
-    # Gürültüsüz test dünyası: 1900 RPM yakıtı ve bulunan devirdeki gerçek yakıt buradan (yuvarlanmamış)
-    ideal = olcum_fonksiyonu(is_["irtifa_ft"], is_["sicaklik_C"], is_["hiz_kt"])
-    y1900 = ideal(SABIT_DEVIR)
 
     # Yakılan yakıt: her kayıt satırı dt saniyelik bir aralık; PPH × s / 3600 = lb
     seyirde = t <= SEYIR_S + 1e-9
@@ -87,8 +82,7 @@ def kosu_yap(is_):
     aramada = t <= arama_bitis + 1e-9
     arama_maliyeti_lb = (gercek[aramada] - y1900).sum() * olc.dt / 3600
 
-    # Bulunan devirdeki gerçek (gürültüsüz) yakıt ve oradaki kararlı kazanç hızı
-    bulunan_gercek = ideal(sonuc.devir)
+    # Bulunan devirdeki kararlı kazanç hızı
     kararli_kazanc_pph = y1900 - bulunan_gercek
     # Başabaş: arama bittikten sonra, kararlı kazancın arama maliyetini karşılama süresi
     if arama_maliyeti_lb <= 0:
@@ -97,6 +91,28 @@ def kosu_yap(is_):
         basabas_s = arama_maliyeti_lb / kararli_kazanc_pph * 3600
     else:
         basabas_s = np.inf        # bulunan devir 1900'den iyi değil: maliyet hiç karşılanmaz
+
+    return dict(
+        yakilan_lb=yakilan_lb,
+        arama_maliyeti_lb=arama_maliyeti_lb,
+        kararli_kazanc_pph=kararli_kazanc_pph,
+        net_tasarruf_lb=net_lb,
+        net_tasarruf_pph=net_lb / (SEYIR_S / 3600),  # 10 dakikadaki tasarrufun saatlik karşılığı
+        net_tasarruf_yuzde=100 * net_lb / sabit_lb,
+        basabas_s=basabas_s,
+    )
+
+
+def kosu_yap(is_):
+    """Tek koşunun bütün ölçütleri. Paralel çalışabilsin diye üst düzey fonksiyon.
+    is_: koşul, parametreler, seed ve ref_yakit_pph (gürültüsüz en düşük yakıt)."""
+    olc, sonuc, arama_bitis = simule_et(is_["irtifa_ft"], is_["sicaklik_C"], is_["hiz_kt"], is_["gurultu_yuzde"],
+                                        is_["ortalama_s"], is_["esik_pph"], is_["seed"])
+    # Gürültüsüz test dünyası: 1900 RPM yakıtı ve bulunan devirdeki gerçek yakıt buradan (yuvarlanmamış)
+    ideal = olcum_fonksiyonu(is_["irtifa_ft"], is_["sicaklik_C"], is_["hiz_kt"])
+    y1900 = ideal(SABIT_DEVIR)
+    bulunan_gercek = ideal(sonuc.devir)
+    n = net_olcutleri(olc, arama_bitis, y1900, bulunan_gercek)
 
     fark = bulunan_gercek - is_["ref_yakit_pph"]
     return dict(
@@ -109,12 +125,8 @@ def kosu_yap(is_):
         yakinsama_s=arama_bitis,
         olcum_sayisi=sonuc.olcum_sayisi,
         olcum_limiti_doldu=sonuc.durma_nedeni == "ölçüm limiti doldu",
-        arama_maliyeti_lb=arama_maliyeti_lb,
-        kararli_kazanc_pph=kararli_kazanc_pph,
-        net_tasarruf_lb=net_lb,
-        net_tasarruf_pph=net_lb / (SEYIR_S / 3600),  # 10 dakikadaki tasarrufun saatlik karşılığı
-        net_tasarruf_yuzde=100 * net_lb / sabit_lb,
-        basabas_s=basabas_s,
+        **{k: n[k] for k in ("arama_maliyeti_lb", "kararli_kazanc_pph", "net_tasarruf_lb", "net_tasarruf_pph",
+                             "net_tasarruf_yuzde", "basabas_s")},
     )
 
 

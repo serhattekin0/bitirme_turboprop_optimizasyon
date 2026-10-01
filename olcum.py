@@ -5,6 +5,8 @@ Algoritma yalnızca olc(devir) -> yakıt (PPH) ya da None bekler. Buradaki
 fonksiyonlar sanal_ucak()'ı bu biçime çevirir; algoritma hangisinin verildiğini bilmez.
 - olcum_fonksiyonu: ideal ölçüm (anında, kusursuz)
 - GercekciOlcum: motor gecikmesi, bekleme, gürültülü örneklerin ortalaması, zaman serisi kaydı
+Hepsi isteğe bağlı bir `dunya` parametresi alır (varsayılan sanal_ucak). Dünya, sanal_ucak ile aynı
+imzaya sahip bir fonksiyondur: dunya(irtifa, sicaklik, hiz, devir) -> (yakıt, tork) ya da None.
 """
 import numpy as np
 import pandas as pd
@@ -12,22 +14,22 @@ import pandas as pd
 from sanal_ucak import DEVIRLER, sanal_ucak
 
 
-def olcum_fonksiyonu(irtifa, sicaklik, hiz):
+def olcum_fonksiyonu(irtifa, sicaklik, hiz, dunya=sanal_ucak):
     """Sabit koşul (irtifa ft, sıcaklık °C, hız kt) için olc(devir) fonksiyonu döndürür."""
     def olc(devir):
-        sonuc = sanal_ucak(irtifa, sicaklik, hiz, devir)
+        sonuc = dunya(irtifa, sicaklik, hiz, devir)
         # sanal_ucak (yakıt, tork) döndürür; algoritmaya yalnızca yakıt verilir
         return None if sonuc is None else sonuc[0]
     return olc
 
 
-def referans_tarama(irtifa, sicaklik, hiz, adim=1):
+def referans_tarama(irtifa, sicaklik, hiz, adim=1, dunya=sanal_ucak):
     """Devri 1600-1900 arasında `adim` RPM aralıkla tarar: (devirler, yakıtlar) dizileri.
 
     Algoritmanın bulduğu sonucu karşılaştırmak için "gerçek" eğri ve optimum buradan alınır.
     Geçersiz devirlerde yakıt NaN olur.
     """
-    olc = olcum_fonksiyonu(irtifa, sicaklik, hiz)
+    olc = olcum_fonksiyonu(irtifa, sicaklik, hiz, dunya)
     devirler = np.arange(DEVIRLER[0], DEVIRLER[-1] + 1, adim)
     yakitlar = [olc(d) for d in devirler]
     yakitlar = np.array([np.nan if y is None else y for y in yakitlar])
@@ -51,8 +53,9 @@ class GercekciOlcum:
     """
 
     def __init__(self, irtifa, sicaklik, hiz, tau_s=2.0, bekleme_s=None, ortalama_s=5.0,
-                 gurultu_yuzde=1.0, dt_s=0.1, baslangic_devir=1900, seed=None):
+                 gurultu_yuzde=1.0, dt_s=0.1, baslangic_devir=1900, seed=None, dunya=sanal_ucak):
         self.irtifa, self.sicaklik, self.hiz = irtifa, sicaklik, hiz
+        self.dunya = dunya
         self.tau_s = tau_s
         self.bekleme_s = 3 * tau_s if bekleme_s is None else bekleme_s  # varsayılan: 3 zaman sabiti (~%95 oturma)
         self.ortalama_s = ortalama_s
@@ -76,7 +79,7 @@ class GercekciOlcum:
         return self._adim_sayisi * self.dt
 
     def _kararli_yakit(self, devir):
-        sonuc = sanal_ucak(self.irtifa, self.sicaklik, self.hiz, devir)
+        sonuc = self.dunya(self.irtifa, self.sicaklik, self.hiz, devir)
         return None if sonuc is None else sonuc[0]
 
     def _adim(self, hedef, ornek):

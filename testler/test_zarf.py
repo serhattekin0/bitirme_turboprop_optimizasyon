@@ -10,6 +10,8 @@ import pytest
 
 from analiz.adim5 import ALT_LIMIT, TOLERANS_PPH, UST_LIMIT, basarisiz_detayi, zarf_kosullari, zarfi_coz
 
+pytestmark = pytest.mark.slow  # bütün zarfı tarar (birkaç dakika)
+
 
 @pytest.fixture(scope="module")
 def zarf():
