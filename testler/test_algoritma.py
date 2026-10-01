@@ -113,3 +113,17 @@ def test_algoritma_tabloyu_gormez():
         elif isinstance(dugum, ast.ImportFrom):
             moduller.add(dugum.module.split(".")[0])
     assert not moduller & {"sanal_ucak", "olcum", "pandas"}
+
+
+def test_esik_kucuk_iyilesmeyi_reddeder():
+    """esik_pph: düşüş eşikten küçükse "daha kötü" sayılır. Yapay eğride 1750 -> 1700 düşüşü 2,5 PPH."""
+    def olc(devir):
+        return 300 + 1e-3 * (devir - 1700) ** 2
+
+    assert perturb_observe(olc).devir == 1700                # varsayılan (eşik 0): eski davranış
+    assert perturb_observe(olc, esik_pph=0).devir == 1700
+    sonuc = perturb_observe(olc, esik_pph=3)                 # 2,5 PPH'lik son iyileşme eşiğin altında
+    assert sonuc.devir == 1750
+    assert [g for g in sonuc.gecmis if g["devir"] == 1700][0]["kabul"] is False
+    with pytest.raises(ValueError):
+        perturb_observe(olc, esik_pph=-1)

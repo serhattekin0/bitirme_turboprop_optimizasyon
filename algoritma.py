@@ -32,6 +32,7 @@ def perturb_observe(
     ust_limit=1900,
     baslangic_yon=-1,
     en_fazla_olcum=50,
+    esik_pph=0,
 ):
     """Sabit uçuş koşulunda yakıtı en aza indiren devri P&O ile arar.
 
@@ -41,6 +42,10 @@ def perturb_observe(
       yön çevrilir ve adım yarıya indirilir.
     Adım en_kucuk_adim'ın altına düşünce ya da ölçüm sayısı en_fazla_olcum'a
     ulaşınca durur.
+
+    esik_pph: yeni ölçüm eskisinden esik_pph'den daha fazla düşükse "daha iyi" sayılır.
+    Gürültülü ölçümde boşuna yön değiştirmeyi azaltır. Varsayılan 0 = eski davranış
+    (her düşüş, ne kadar küçük olursa olsun, kabul edilir; eşitlik "daha kötü").
     """
     if not alt_limit < ust_limit:
         raise ValueError("alt_limit, ust_limit'ten küçük olmalı")
@@ -52,6 +57,8 @@ def perturb_observe(
         raise ValueError("0 < en_kucuk_adim <= baslangic_adim olmalı")
     if en_fazla_olcum < 1:
         raise ValueError("en_fazla_olcum en az 1 olmalı")
+    if esik_pph < 0:
+        raise ValueError("esik_pph negatif olamaz")
 
     # 1) Başlangıç noktasını ölç; karşılaştırma için bir referans gerekiyor
     devir = baslangic_devir
@@ -80,7 +87,7 @@ def perturb_observe(
             olcum_sayisi += 1
             if yeni_yakit is None:
                 neden = "geçersiz"
-            elif yeni_yakit < yakit:
+            elif yeni_yakit < yakit - esik_pph:
                 neden = "daha iyi"
             else:
                 neden = "daha kötü"
