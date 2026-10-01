@@ -37,6 +37,10 @@ def tara(irtifa, sicaklik, hiz):
     return np.array([yakit for yakit, _ in sonuclar])
 
 
+def kosul_etiketi(irtifa, sicaklik, hiz):
+    return f"{irtifa} ft, {sicaklik} °C, {hiz} kt"
+
+
 def sade_eksen(ax, baslik):
     ax.set_facecolor(ZEMIN)
     ax.set_title(baslik, loc="left", color=MUREKKEP, fontsize=11, pad=10)
@@ -51,55 +55,58 @@ def sade_eksen(ax, baslik):
     ax.set_xlabel("Pervane devri (RPM)", color=IKINCIL, fontsize=9)
 
 
-fig, (sol, sag) = plt.subplots(1, 2, figsize=(12, 5.8), facecolor=ZEMIN)
-sade_eksen(sol, "Yakıt debisi (PPH)")
-sade_eksen(sag, "En düşük yakıttan fark (PPH)")
+# Doğrudan çalıştırıldığında grafiği çizer; adim4 gibi başka dosyalar yukarıdaki
+# renkleri, koşulları ve fonksiyonları import edebilsin diye __main__ altında.
+if __name__ == "__main__":
+    fig, (sol, sag) = plt.subplots(1, 2, figsize=(12, 5.8), facecolor=ZEMIN)
+    sade_eksen(sol, "Yakıt debisi (PPH)")
+    sade_eksen(sag, "En düşük yakıttan fark (PPH)")
 
-print(f"{'Koşul':<24}{'Optimum':>10}{'Yakıt':>10}{'1900 RPM':>10}{'Kazanç':>9}")
-for renk, (irtifa, sicaklik, hiz) in zip(RENKLER, KOSULLAR):
-    etiket = f"{irtifa} ft, {sicaklik} °C, {hiz} kt"
-    yakit = tara(irtifa, sicaklik, hiz)
-    if yakit is None:
-        print(f"{etiket:<24}  GEÇERSİZ: bu hızı üç devir birden tutamıyor, atlandı")
-        continue
+    print(f"{'Koşul':<24}{'Optimum':>10}{'Yakıt':>10}{'1900 RPM':>10}{'Kazanç':>9}")
+    for renk, (irtifa, sicaklik, hiz) in zip(RENKLER, KOSULLAR):
+        etiket = kosul_etiketi(irtifa, sicaklik, hiz)
+        yakit = tara(irtifa, sicaklik, hiz)
+        if yakit is None:
+            print(f"{etiket:<24}  GEÇERSİZ: bu hızı üç devir birden tutamıyor, atlandı")
+            continue
 
-    k = yakit.argmin()
-    opt_devir, opt_yakit = DEVIR_TARAMA[k], yakit[k]
-    print(f"{etiket:<24}{opt_devir:>6} RPM{opt_yakit:>10.1f}{yakit[-1]:>10.1f}{yakit[-1] - opt_yakit:>9.1f}")
+        k = yakit.argmin()
+        opt_devir, opt_yakit = DEVIR_TARAMA[k], yakit[k]
+        print(f"{etiket:<24}{opt_devir:>6} RPM{opt_yakit:>10.1f}{yakit[-1]:>10.1f}{yakit[-1] - opt_yakit:>9.1f}")
 
-    # Sol: gerçek yakıt değerleri
-    sol.plot(DEVIR_TARAMA, yakit, color=renk, linewidth=2, solid_capstyle="round", label=etiket)
-    tablo_yakit = [sanal_ucak(irtifa, sicaklik, hiz, d)[0] for d in DEVIRLER]
-    sol.plot(DEVIRLER, tablo_yakit, "o", ms=7, mfc=ZEMIN, mec=renk, mew=2, zorder=4)
-    sol.plot(opt_devir, opt_yakit, "o", ms=10, mfc=renk, mec=ZEMIN, mew=2, zorder=5)
-    hiza = "right" if opt_devir > 1870 else "left" if opt_devir < 1630 else "center"
-    sol.annotate(f"{opt_devir} RPM · {opt_yakit:.1f} PPH", (opt_devir, opt_yakit), xytext=(0, -12),
-                 textcoords="offset points", ha=hiza, va="top", color=MUREKKEP, fontsize=9,
-                 bbox=dict(boxstyle="round,pad=0.2", fc=ZEMIN, ec="none"), zorder=6)
+        # Sol: gerçek yakıt değerleri
+        sol.plot(DEVIR_TARAMA, yakit, color=renk, linewidth=2, solid_capstyle="round", label=etiket)
+        tablo_yakit = [sanal_ucak(irtifa, sicaklik, hiz, d)[0] for d in DEVIRLER]
+        sol.plot(DEVIRLER, tablo_yakit, "o", ms=7, mfc=ZEMIN, mec=renk, mew=2, zorder=4)
+        sol.plot(opt_devir, opt_yakit, "o", ms=10, mfc=renk, mec=ZEMIN, mew=2, zorder=5)
+        hiza = "right" if opt_devir > 1870 else "left" if opt_devir < 1630 else "center"
+        sol.annotate(f"{opt_devir} RPM · {opt_yakit:.1f} PPH", (opt_devir, opt_yakit), xytext=(0, -12),
+                     textcoords="offset points", ha=hiza, va="top", color=MUREKKEP, fontsize=9,
+                     bbox=dict(boxstyle="round,pad=0.2", fc=ZEMIN, ec="none"), zorder=6)
 
-    # Sağ: her eğri kendi minimumuna göre; optimumun yatayda kayması burada görünür
-    sag.plot(DEVIR_TARAMA, yakit - opt_yakit, color=renk, linewidth=2, solid_capstyle="round")
-    sag.plot(opt_devir, 0, "o", ms=10, mfc=renk, mec=ZEMIN, mew=2, zorder=5)
+        # Sağ: her eğri kendi minimumuna göre; optimumun yatayda kayması burada görünür
+        sag.plot(DEVIR_TARAMA, yakit - opt_yakit, color=renk, linewidth=2, solid_capstyle="round")
+        sag.plot(opt_devir, 0, "o", ms=10, mfc=renk, mec=ZEMIN, mew=2, zorder=5)
 
-sol.margins(y=0.12)
-sag.set_ylim(bottom=-1)
+    sol.margins(y=0.12)
+    sag.set_ylim(bottom=-1)
 
-isaretler = [
-    Line2D([], [], ls="", marker="o", ms=7, mfc=ZEMIN, mec=IKINCIL, mew=2, label="Tablodan (1600/1750/1900)"),
-    Line2D([], [], ls="", marker="o", ms=10, mfc=IKINCIL, mec=ZEMIN, mew=2, label="En az yakıt"),
-]
-fig.legend(handles=sol.get_lines()[0::3] + isaretler, loc="upper left", bbox_to_anchor=(0.045, 0.905),
-           ncol=6, frameon=False, fontsize=9, labelcolor=IKINCIL, handlelength=1.6, columnspacing=1.4)
-fig.text(0.05, 0.965, "Optimum devir koşula göre kayıyor", fontsize=15, color=MUREKKEP, weight="bold")
-fig.text(0.05, 0.925, "Cessna 208B seyir tablosu: her devirde hıza göre ara değer, devirler arasında 2. derece eğri",
-         fontsize=10, color=IKINCIL)
-fig.tight_layout(rect=(0.03, 0, 1, 0.85))
+    isaretler = [
+        Line2D([], [], ls="", marker="o", ms=7, mfc=ZEMIN, mec=IKINCIL, mew=2, label="Tablodan (1600/1750/1900)"),
+        Line2D([], [], ls="", marker="o", ms=10, mfc=IKINCIL, mec=ZEMIN, mew=2, label="En az yakıt"),
+    ]
+    fig.legend(handles=sol.get_lines()[0::3] + isaretler, loc="upper left", bbox_to_anchor=(0.045, 0.905),
+               ncol=6, frameon=False, fontsize=9, labelcolor=IKINCIL, handlelength=1.6, columnspacing=1.4)
+    fig.text(0.05, 0.965, "Optimum devir koşula göre kayıyor", fontsize=15, color=MUREKKEP, weight="bold")
+    fig.text(0.05, 0.925, "Cessna 208B seyir tablosu: her devirde hıza göre ara değer, devirler arasında 2. derece eğri",
+             fontsize=10, color=IKINCIL)
+    fig.tight_layout(rect=(0.03, 0, 1, 0.85))
 
-cikti = Path(__file__).with_name("adim3_yakit_devir.png")
-try:
-    fig.savefig(cikti, dpi=150, facecolor=ZEMIN)
-    print(f"\nGrafik kaydedildi: {cikti.name}")
-except OSError:
-    # Windows, dosya başka bir programda (ör. Fotoğraflar) açıkken üzerine yazdırmıyor
-    print(f"\n{cikti.name} kaydedilemedi: dosya başka bir programda açık olabilir. Kapatıp tekrar çalıştır.")
-plt.show()
+    cikti = Path(__file__).with_name("adim3_yakit_devir.png")
+    try:
+        fig.savefig(cikti, dpi=150, facecolor=ZEMIN)
+        print(f"\nGrafik kaydedildi: {cikti.name}")
+    except OSError:
+        # Windows, dosya başka bir programda (ör. Fotoğraflar) açıkken üzerine yazdırmıyor
+        print(f"\n{cikti.name} kaydedilemedi: dosya başka bir programda açık olabilir. Kapatıp tekrar çalıştır.")
+    plt.show()

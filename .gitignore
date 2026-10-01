@@ -2,3 +2,4 @@ __pycache__/
 
 # Üretici kılavuzları (telifli), repoya konmuyor
 *.pdf
+.pytest_cache/
