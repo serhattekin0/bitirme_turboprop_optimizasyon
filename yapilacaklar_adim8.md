@@ -63,5 +63,6 @@ Hiçbiri sonuçları ya da `ilerleme_raporu.md`'yi değiştirmiyor.
 - Eski test `test_olcum.py::test_gurultusuz_ve_gecikmesiz_adim5_ile_ayni` bu ortamda kayan nokta
   eşitliği yüzünden kalıyor: 2000 ft / −30 °C / 152 kt'ta 1700 ve 1725 RPM'deki yakıt eşit.
   Test ve dosyalar değiştirilmedi.
-- NeuralFoil polarları (Re 1,2 ve 2,5 milyon) üretildi, kullanıcıya zip olarak verildi.
-  Pervane deposuna (`UmutBosver/Bitirme-Projesi`, `veri/profiller/`) henüz eklenmedi.
+- NeuralFoil polarları (Re 1,2 ve 2,5 milyon) üretildi. Bu depoda `veri/profiller/` altında
+  duruyor (ayrıntı: `veri/profiller/BENIOKU.md`). Pervane deposuna (`UmutBosver/Bitirme-Projesi`,
+  `veri/profiller/`) henüz eklenmedi; oraya `re1p2M/` içindeki üç CSV konacak.
